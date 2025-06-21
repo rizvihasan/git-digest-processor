@@ -1,0 +1,18 @@
+# action.yml
+
+name: 'Git Digest Processor'
+description: 'Clones a Git repository, filters it, and generates a text digest.'
+author: 'rizvihasan'
+
+inputs:
+  repo_url:
+    description: 'The full URL of the public Git repository to process.'
+    required: true
+
+outputs:
+  digest_artifact_name:
+    description: 'The name of the workflow artifact containing the text digest.'
+
+runs:
+  using: 'node22' 
+  main: 'dist/index.js' 
