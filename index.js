@@ -1,32 +1,47 @@
 // index.js
 
-// This is the official toolkit for interacting with GitHub Actions.
 const core = require('@actions/core');
+const path = require('path');
+const fs = require('fs');
+const { execa } = require('execa');
 
 async function run() {
-  try {
-    // Get the 'repo_url' input value that I defined in action.yml.
-    const repoUrl = core.getInput('repo_url');
+  // I'll create a temporary directory for each run, to keep things clean.
+  const tempDir = path.join(process.cwd(), `temp-${Date.now()}`);
 
-    // Print a message to the action's log.
+  try {
+    const repoUrl = core.getInput('repo_url');
     core.info(`Starting processing for repository: ${repoUrl}`);
 
-    // TODO: This is where I'll add the main logic:
-    // 1. Clone the repository.
-    // 2. Walk the file tree.
-    // 3. Filter files using .gitignore rules.
-    // 4. Generate the digest.
-    // 5. Upload the digest as an artifact.
+    // Creating the temporary directory where I'll clone the repo.
+    core.info(`Creating temporary directory: ${tempDir}`);
+    fs.mkdirSync(tempDir);
 
-    // For now, I'll just set a dummy output value to make sure it works.
+    // --- This is the core logic for cloning ---
+    core.info(`Cloning repository into temporary directory...`);
+
+    // I'm using '--depth 1' for a shallow clone.
+    // This is much faster as it doesn't download the entire git history.
+    await execa('git', ['clone', '--depth', '1', repoUrl, tempDir]);
+
+    core.info('Repository cloned successfully.');
+
+    // TODO: Next step is to walk this directory and process the files.
+    // I can now access the cloned files inside the 'tempDir'.
+
     const artifactName = `digest-for-${Date.now()}`;
     core.setOutput('digest_artifact_name', artifactName);
 
   } catch (error) {
-    // If any part of my script fails, I'll use this to mark the action as 'failed'.
     core.setFailed(`Action failed with error: ${error.message}`);
+  } finally {
+    // This 'finally' block ensures my temporary directory is always cleaned up,
+    // even if the action fails.
+    if (fs.existsSync(tempDir)) {
+      core.info(`Cleaning up temporary directory: ${tempDir}`);
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   }
 }
 
-// This tells the action to run my 'run' function.
 run();
