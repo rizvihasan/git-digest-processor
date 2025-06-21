@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { execa } = require('execa');
 const { globSync } = require('glob');
-const ignore = require('ignore'); // I'm importing the 'ignore' library.
+const ignore = require('ignore');
 
 async function run() {
   const tempDir = path.join(process.cwd(), `temp-${Date.now()}`);
@@ -23,30 +23,30 @@ async function run() {
     core.info('Walking the repository to find all files...');
     const allFiles = globSync('**/*', { cwd: tempDir, nodir: true, dot: true });
 
-    // --- This is the new logic for filtering files ---
-    core.info(`Found ${allFiles.length} total files. Now applying .gitignore rules...`);
+    core.info(`Found ${allFiles.length} total files. Now applying ignore rules...`);
 
-    const gitignorePath = path.join(tempDir, '.gitignore');
     const ig = ignore();
 
-    // Check if a .gitignore file exists and add its rules.
+    // --- THIS IS THE FIX ---
+    // I must add a default rule to ignore the .git directory itself.
+    ig.add('.git');
+
+    // Now, check if a .gitignore file exists and add its rules.
+    const gitignorePath = path.join(tempDir, '.gitignore');
     if (fs.existsSync(gitignorePath)) {
       const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
       ig.add(gitignoreContent);
-      core.info('Loaded rules from .gitignore file.');
+      core.info('Loaded rules from repository .gitignore file.');
     } else {
       core.info('No .gitignore file found in the repository.');
     }
 
-    // Now, I'll filter the list. The 'ignores' method returns true if a file should be ignored.
     const includedFiles = allFiles.filter(file => !ig.ignores(file));
 
     core.info(`Filtered down to ${includedFiles.length} files.`);
     core.info('--- Sample of files to be included: ---');
     includedFiles.slice(0, 10).forEach(file => core.info(`  - ${file}`));
     core.info('------------------------------------');
-
-    // TODO: Next, I need to read the content of these filtered files and format the final digest.
 
     const artifactName = `digest-for-${Date.now()}`;
     core.setOutput('digest_artifact_name', artifactName);

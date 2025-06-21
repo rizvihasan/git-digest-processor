@@ -46467,7 +46467,7 @@ const index_path = __nccwpck_require__(6928);
 const fs = __nccwpck_require__(9896);
 const { execa } = __nccwpck_require__(6817);
 const { globSync } = __nccwpck_require__(1363);
-const ignore = __nccwpck_require__(298); // I'm importing the 'ignore' library.
+const ignore = __nccwpck_require__(298);
 
 async function run() {
   const tempDir = index_path.join(process.cwd(), `temp-${Date.now()}`);
@@ -46485,30 +46485,30 @@ async function run() {
     core.info('Walking the repository to find all files...');
     const allFiles = globSync('**/*', { cwd: tempDir, nodir: true, dot: true });
 
-    // --- This is the new logic for filtering files ---
-    core.info(`Found ${allFiles.length} total files. Now applying .gitignore rules...`);
+    core.info(`Found ${allFiles.length} total files. Now applying ignore rules...`);
 
-    const gitignorePath = index_path.join(tempDir, '.gitignore');
     const ig = ignore();
 
-    // Check if a .gitignore file exists and add its rules.
+    // --- THIS IS THE FIX ---
+    // I must add a default rule to ignore the .git directory itself.
+    ig.add('.git');
+
+    // Now, check if a .gitignore file exists and add its rules.
+    const gitignorePath = index_path.join(tempDir, '.gitignore');
     if (fs.existsSync(gitignorePath)) {
       const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
       ig.add(gitignoreContent);
-      core.info('Loaded rules from .gitignore file.');
+      core.info('Loaded rules from repository .gitignore file.');
     } else {
       core.info('No .gitignore file found in the repository.');
     }
 
-    // Now, I'll filter the list. The 'ignores' method returns true if a file should be ignored.
     const includedFiles = allFiles.filter(file => !ig.ignores(file));
 
     core.info(`Filtered down to ${includedFiles.length} files.`);
     core.info('--- Sample of files to be included: ---');
     includedFiles.slice(0, 10).forEach(file => core.info(`  - ${file}`));
     core.info('------------------------------------');
-
-    // TODO: Next, I need to read the content of these filtered files and format the final digest.
 
     const artifactName = `digest-for-${Date.now()}`;
     core.setOutput('digest_artifact_name', artifactName);
