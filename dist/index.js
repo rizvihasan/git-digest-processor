@@ -145030,13 +145030,13 @@ const fs = __nccwpck_require__(79896);
 const { execa } = __nccwpck_require__(89755);
 const { globSync } = __nccwpck_require__(21363);
 const ignore = __nccwpck_require__(70298);
-const artifact = __nccwpck_require__(76846); // I'm importing the artifact client.
+// I'm importing the 'uploadArtifact' function directly using a named import.
+const { uploadArtifact } = __nccwpck_require__(76846);
 
 async function run() {
   const tempDir = index_path.join(process.cwd(), `temp-${Date.now()}`);
 
   try {
-    // --- Setup and Cloning (No changes here) ---
     const repoUrl = core.getInput('repo_url');
     core.info(`Starting processing for repository: ${repoUrl}`);
     fs.mkdirSync(tempDir, { recursive: true });
@@ -145044,7 +145044,6 @@ async function run() {
     await execa('git', ['clone', '--depth', '1', repoUrl, tempDir]);
     core.info('Repository cloned successfully.');
 
-    // --- File Discovery and Filtering (No changes here) ---
     core.info('Walking the repository to find all files...');
     const allFiles = globSync('**/*', { cwd: tempDir, nodir: true, dot: true });
     const ig = ignore().add('.git');
@@ -145053,9 +145052,8 @@ async function run() {
       ig.add(fs.readFileSync(gitignorePath, 'utf8'));
     }
     const includedFiles = allFiles.filter(file => !ig.ignores(file));
-    core.info(`Found ${allFiles.length} total files. Filtered down to ${includedFiles.length} files.`);
+    core.info(`Filtered down to ${includedFiles.length} files.`);
 
-    // --- FINAL STEP: Read files and build the digest ---
     core.info('Reading file contents and generating digest...');
     let finalDigest = `Repository: ${repoUrl}\n`;
     finalDigest += `Total files processed: ${includedFiles.length}\n\n`;
@@ -145066,22 +145064,22 @@ async function run() {
         const content = fs.readFileSync(filePath, 'utf8');
         finalDigest += `---\nFile: ${file}\n---\n${content}\n\n`;
       } catch (err) {
-        // This likely means the file is binary, so I'll just note its path.
         finalDigest += `---\nFile: ${file} (binary or unreadable)\n---\n\n`;
       }
     }
 
-    // --- Upload the final digest as a workflow artifact ---
     const digestPath = index_path.join(tempDir, 'digest.txt');
     fs.writeFileSync(digestPath, finalDigest);
 
-    const artifactClient = artifact.create();
+    // --- THIS IS THE FIX ---
+    // The new API is simpler. I just need to call the imported function directly.
     const artifactName = 'code-digest';
     const filesToUpload = [digestPath];
     const rootDirectory = tempDir;
 
     core.info(`Uploading digest artifact: ${artifactName}`);
-    await artifactClient.uploadArtifact(artifactName, filesToUpload, rootDirectory);
+    // No need to create a client. I just call the function.
+    await uploadArtifact(artifactName, filesToUpload, rootDirectory);
     core.info('Artifact uploaded successfully.');
 
   } catch (error) {
