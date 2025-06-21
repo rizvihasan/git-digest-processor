@@ -6,8 +6,8 @@ const fs = require('fs');
 const { execa } = require('execa');
 const { globSync } = require('glob');
 const ignore = require('ignore');
-// I'm importing the 'uploadArtifact' function directly using a named import.
-const { uploadArtifact } = require('@actions/artifact');
+// I am importing the specific Client class from the library.
+const { DefaultArtifactClient } = require('@actions/artifact');
 
 async function run() {
   const tempDir = path.join(process.cwd(), `temp-${Date.now()}`);
@@ -48,14 +48,18 @@ async function run() {
     fs.writeFileSync(digestPath, finalDigest);
 
     // --- THIS IS THE FIX ---
-    // The new API is simpler. I just need to call the imported function directly.
+    // 1. I create a new instance of the artifact client.
+    const artifactClient = new DefaultArtifactClient();
     const artifactName = 'code-digest';
     const filesToUpload = [digestPath];
     const rootDirectory = tempDir;
+    const options = {
+        continueOnError: false
+    };
 
     core.info(`Uploading digest artifact: ${artifactName}`);
-    // No need to create a client. I just call the function.
-    await uploadArtifact(artifactName, filesToUpload, rootDirectory);
+    // 2. I call the 'uploadArtifact' method on the client instance.
+    await artifactClient.uploadArtifact(artifactName, filesToUpload, rootDirectory, options);
     core.info('Artifact uploaded successfully.');
 
   } catch (error) {

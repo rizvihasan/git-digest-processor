@@ -145030,8 +145030,8 @@ const fs = __nccwpck_require__(79896);
 const { execa } = __nccwpck_require__(89755);
 const { globSync } = __nccwpck_require__(21363);
 const ignore = __nccwpck_require__(70298);
-// I'm importing the 'uploadArtifact' function directly using a named import.
-const { uploadArtifact } = __nccwpck_require__(76846);
+// I am importing the specific Client class from the library.
+const { DefaultArtifactClient } = __nccwpck_require__(76846);
 
 async function run() {
   const tempDir = index_path.join(process.cwd(), `temp-${Date.now()}`);
@@ -145072,14 +145072,18 @@ async function run() {
     fs.writeFileSync(digestPath, finalDigest);
 
     // --- THIS IS THE FIX ---
-    // The new API is simpler. I just need to call the imported function directly.
+    // 1. I create a new instance of the artifact client.
+    const artifactClient = new DefaultArtifactClient();
     const artifactName = 'code-digest';
     const filesToUpload = [digestPath];
     const rootDirectory = tempDir;
+    const options = {
+        continueOnError: false
+    };
 
     core.info(`Uploading digest artifact: ${artifactName}`);
-    // No need to create a client. I just call the function.
-    await uploadArtifact(artifactName, filesToUpload, rootDirectory);
+    // 2. I call the 'uploadArtifact' method on the client instance.
+    await artifactClient.uploadArtifact(artifactName, filesToUpload, rootDirectory, options);
     core.info('Artifact uploaded successfully.');
 
   } catch (error) {
