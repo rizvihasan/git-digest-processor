@@ -11,14 +11,31 @@ jobs:
   test-action:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checks out a copy of our repository's code. (No change)
       - name: 'Checkout Repo'
         uses: actions/checkout@v4
 
+      # --- NEW STEPS START HERE ---
+      
+      # Step 2: Sets up the specific Node.js environment our action needs.
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Step 3: Installs our project's dependencies.
+      - name: 'Install Dependencies'
+        run: npm install
+
+      # Step 4: Runs the build script to create the 'dist' folder.
+      - name: 'Build the Action'
+        run: npm run build
+        
+      # --- NEW STEPS END HERE ---
+
+      # Step 5: Runs our actual action. This now works because the previous step created the dist folder.
       - name: 'Run Local Action'
         id: local-action-test
         uses: ./ 
         with:
           repo_url: 'https://github.com/stedolan/jq.git'
-
-      - name: 'Print Action Output'
-        run: echo "The action output was ${{ steps.local-action-test.outputs.digest_artifact_name }}"
