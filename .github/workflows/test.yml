@@ -1,41 +1,47 @@
 # .github/workflows/test.yml
 
-name: 'Test Processor Action'
+name: 'Test and Run Processor Action'
 
 on:
+  # This keeps our original trigger, so it still runs on every push.
   push:
     branches:
       - develop
+
+  # --- THIS IS THE FIX ---
+  # This new trigger allows us to run this workflow from an API call.
+  workflow_dispatch:
+    # This defines the inputs the workflow can receive.
+    inputs:
+      repo_url:
+        description: 'The URL of the repository to process'
+        required: true
+      job_id:
+        description: 'The ID of the job record in our database'
+        required: true
 
 jobs:
   test-action:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checks out a copy of our repository's code. (No change)
       - name: 'Checkout Repo'
         uses: actions/checkout@v4
 
-      # --- NEW STEPS START HERE ---
-      
-      # Step 2: Sets up the specific Node.js environment our action needs.
       - name: 'Setup Node.js'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Step 3: Installs our project's dependencies.
       - name: 'Install Dependencies'
         run: npm install
 
-      # Step 4: Runs the build script to create the 'dist' folder.
       - name: 'Build the Action'
         run: npm run build
-        
-      # --- NEW STEPS END HERE ---
 
-      # Step 5: Runs our actual action. This now works because the previous step created the dist folder.
       - name: 'Run Local Action'
         id: local-action-test
-        uses: ./ 
+        uses: ./
         with:
-          repo_url: 'https://github.com/stedolan/jq.git'
+          # This now gets the repo_url from the API call's input
+          repo_url: ${{ github.event.inputs.repo_url }}
+          # Note: We are not using the job_id input yet, but we will later.
